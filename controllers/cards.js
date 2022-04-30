@@ -1,17 +1,34 @@
 const Card = require('../models/card');
 
-module.exports.getCards = (req, res) => {
-  Card.find({})
-    .then((cards) => res.send({ data: cards }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+// eslint-disable-next-line no-shadow
+module.exports.getCards = async (req, res) => {
+  try {
+    const cards = await Card.find({}).populate('owner').populate({ path: 'likes', populate: 'owner' });
+    res.status(200).send(cards);
+  } catch (err) {
+    res.status(500).send({ message: 'Произошла ошибка', err });
+  }
 };
 
 module.exports.createCard = (req, res) => {
   const { name, link } = req.body;
-  const { owner } = req.user._id;
+  const owner = req.user._id;
   Card.create({ name, link, owner })
-    .then((card) => res.send({ data: card }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .then((card) => {
+      res.status(201).send({ data: card });
+    })
+    .catch((err) => {
+      if (err.errors.name === 'ValidationError') {
+        res.status(400).send({
+          message: 'Ошибка валидации',
+          ...err,
+        });
+      }
+      res.status(500).send({
+        message: 'Ошибка в работе сервера',
+        err,
+      });
+    });
 };
 
 module.exports.deleteCard = (req, res) => {
@@ -20,12 +37,17 @@ module.exports.deleteCard = (req, res) => {
     .catch((err) => res.status(500).send({ message: err.message }));
 };
 
-module.exports.likeCard = (req) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user._id } },
-    { new: true },
-  );
+module.exports.likeCard = async (req, res) => {
+  try {
+    await Card.findByIdAndUpdate(
+      req.params.cardId,
+      { $addToSet: { likes: req.user._id } },
+      { new: true },
+    );
+    res.status(200).send({ message: 'Лайк поставлен' });
+  } catch (err) {
+    res.status(500).send({ message: 'server error', err });
+  }
 };
 
 module.exports.dislikeCard = (req) => {
