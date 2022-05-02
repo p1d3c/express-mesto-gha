@@ -22,10 +22,6 @@ module.exports.getUserById = async (req, res) => {
       res.status(400).send({ message: 'Некорректный id пользователя' });
       return;
     }
-    // if (err.name === 'CastError' && err.path === '_id') {
-    //   res.status(404).send({ message: 'Пользователь не найден' });
-    //   return;
-    // }
     res.status(500).send({ message: 'server error', err });
   }
 };
@@ -47,17 +43,11 @@ module.exports.createUser = async (req, res) => {
 module.exports.updateUserProfile = async (req, res) => {
   try {
     const { name, about } = req.body;
-    // if ((name.length < 2 || name.length > 30)
-    // || (about.length < 2 || about.length > 30)) {
-    //   res.status(400).send({ message: 'Ошибка валидации данных' });
-    //   return;
-    // }
-    await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       { name, about },
       { new: true, runValidators: true },
     );
-    const updatedUser = await User.findById(req.user._id);
     res.status(200).send({ data: updatedUser });
   } catch (err) {
     if (err.name === 'ValidationError') {
