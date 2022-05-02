@@ -17,6 +17,10 @@ app.use('/', require('./routes/users'));
 
 app.use('/', require('./routes/cards'));
 
+app.use('*', (req, res) => {
+  res.status(404).send({ message: 'Путь не найден' });
+});
+
 async function handleDbConnect() {
   await mongoose.connect('mongodb://localhost:27017/mestodb', {
     useNewUrlParser: true,
