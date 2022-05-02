@@ -55,12 +55,14 @@ module.exports.updateUserProfile = async (req, res) => {
     await User.findByIdAndUpdate(
       req.user._id,
       { name, about },
+      { new: true, runValidators: true },
     );
     const updatedUser = await User.findById(req.user._id);
     res.status(200).send({ data: updatedUser });
   } catch (err) {
     if (err.name === 'ValidationError') {
       res.status(400).send({ message: `${Object.values(err.errors).map((error) => error.message).join(', ')}` });
+      return;
     }
     if (err.name === 'CastError' && err.path === '_id') {
       res.status(404).send({ message: 'Пользователь не найден' });
