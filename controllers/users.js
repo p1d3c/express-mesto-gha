@@ -18,7 +18,7 @@ module.exports.getUserById = async (req, res) => {
     }
     res.status(200).send({ data: user });
   } catch (err) {
-    if (req.params.userId.length !== 24) {
+    if (err.name === 'CastError') {
       res.status(400).send({ message: 'Некорректный id пользователя' });
       return;
     }
@@ -54,16 +54,8 @@ module.exports.updateUserProfile = async (req, res) => {
       res.status(400).send({ message: `${Object.values(err.errors).map((error) => error.message).join(', ')}` });
       return;
     }
-    if (err.name === 'CastError' && err.path === '_id') {
-      res.status(404).send({ message: 'Пользователь не найден' });
-      return;
-    }
-    if (err.name === 'CastError' && err.path === 'about') {
-      res.status(400).send({ message: 'Переданы некорректные данные' });
-      return;
-    }
-    if (err.name === 'CastError' && err.path === 'name') {
-      res.status(400).send({ message: 'Переданы некорректные данные' });
+    if (err.name === 'CastError') {
+      res.status(400).send({ message: 'Пользователь не найден' });
       return;
     }
     res.status(500).send({ message: 'server error', err });
@@ -76,16 +68,16 @@ module.exports.updateUserAvatar = async (req, res) => {
     await User.findByIdAndUpdate(
       req.user._id,
       { avatar },
+      { new: true, runValidators: true },
     );
     const updatedUser = await User.findById(req.user._id);
     res.status(200).send({ data: updatedUser });
   } catch (err) {
-    if (err.name === 'CastError' && err.path === '_id') {
-      res.status(404).send({ message: 'Пользователь не найден' });
-      return;
+    if (err.name === 'ValidationError') {
+      res.status(400).send({ message: 'Переданы некорректные данные' });
     }
-    if (err.name === 'CastError' && err.path === 'avatar') {
-      res.status(400).send({ message: 'Переданы некоректные данные' });
+    if (err.name === 'CastError') {
+      res.status(400).send({ message: 'Пользователь не найден' });
       return;
     }
     res.status(500).send({ message: 'server error', err });

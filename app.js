@@ -13,6 +13,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.json());
+
 app.use('/', require('./routes/users'));
 
 app.use('/', require('./routes/cards'));

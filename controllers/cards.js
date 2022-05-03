@@ -42,7 +42,7 @@ module.exports.deleteCard = async (req, res) => {
     await Card.findByIdAndRemove(req.params.cardId);
     res.status(200).send({ message: 'Карточка успешно удалена' });
   } catch (err) {
-    if (err.name === 'CastError' && err.path === '_id') {
+    if (err.name === 'CastError') {
       res.status(400).send({ message: 'Некорректный id карточки' });
       return;
     }
@@ -56,20 +56,19 @@ module.exports.likeCard = async (req, res) => {
       res.status(400).send({ message: 'Некорректный id карточки' });
       return;
     }
-    const card = await Card.findById(req.params.cardId);
-    if (!card) {
-      res.status(404).send({ message: 'Карточка не найдена' });
-      return;
-    }
-    await Card.findByIdAndUpdate(
+    const card = await Card.findByIdAndUpdate(
       req.params.cardId,
       { $addToSet: { likes: req.user._id } },
       { new: true },
     );
+    if (!card) {
+      res.status(404).send({ message: 'Карточка не найдена' });
+      return;
+    }
     res.status(200).send({ message: 'Лайк поставлен' });
   } catch (err) {
-    if (err.name === 'CastError' && err.path === '_id') {
-      res.status(404).send({ message: 'Передан несуществующий id', err });
+    if (err.name === 'CastError') {
+      res.status(400).send({ message: 'Передан несуществующий id', err });
       return;
     }
     res.status(500).send({ message: 'server error', err });
@@ -82,20 +81,19 @@ module.exports.dislikeCard = async (req, res) => {
       res.status(400).send({ message: 'Некорректный id карточки' });
       return;
     }
-    const card = await Card.findById(req.params.cardId);
-    if (!card) {
-      res.status(404).send({ message: 'Карточка не найдена' });
-      return;
-    }
-    await Card.findByIdAndUpdate(
+    const card = await Card.findByIdAndUpdate(
       req.params.cardId,
       { $pull: { likes: req.user._id } },
       { new: true },
     );
+    if (!card) {
+      res.status(404).send({ message: 'Карточка не найдена' });
+      return;
+    }
     res.status(200).send({ message: 'Лайк снят' });
   } catch (err) {
-    if (err.name === 'CastError' && err.path === '_id') {
-      res.status(404).send({ message: 'Передан несуществующий id', err });
+    if (err.name === 'CastError') {
+      res.status(400).send({ message: 'Передан несуществующий id', err });
       return;
     }
     res.status(500).send({ message: 'server error', err });
