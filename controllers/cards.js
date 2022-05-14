@@ -33,8 +33,13 @@ module.exports.createCard = async (req, res) => {
 };
 
 module.exports.deleteCard = async (req, res) => {
+  const cardToDelete = await Card.findById(req.params.cardId);
+  const ownerId = req.user.id;
   try {
-    const cardToDelete = await Card.findById(req.params.cardId);
+    if (ownerId !== cardToDelete.owner._id) {
+      res.status(403).send({ message: 'Чужие карточки удалять нельзя' });
+      return;
+    }
     if (!cardToDelete) {
       res.status(404).send({ message: 'Карточка не найдена' });
       return;
