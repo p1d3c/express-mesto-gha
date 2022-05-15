@@ -44,6 +44,10 @@ module.exports.createUser = async (req, res, next) => {
       next(new Conflict('Пользователь уже существует'));
       return;
     }
+    if (!password) {
+      next(new BadRequest('Пароль не указан'));
+      return;
+    }
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
     const newUser = await User.create({
       email, password: hash, name, about, avatar,
