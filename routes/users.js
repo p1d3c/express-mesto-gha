@@ -9,8 +9,8 @@ router.get('/users/me', getMyProfile);
 router.get('/users/:userId', getUserById);
 router.patch('/users/me', celebrate({
   body: Joi.object().keys({
-    name: Joi.string().required(),
-    about: Joi.string().required(),
+    name: Joi.string().required().min(2).max(30),
+    about: Joi.string().required().min(2).max(30),
   }),
 }), updateUserProfile);
 router.patch('/users/me/avatar', celebrate({
