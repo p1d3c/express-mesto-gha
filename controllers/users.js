@@ -1,58 +1,64 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const { getToken } = require('../middlewares/auth');
+const NotFound = require('../errors/NotFound');
+const BadRequest = require('../errors/BadRequest');
+const Conflict = require('../errors/Conflict');
+const Unauthorized = require('../errors/Unauthorized');
 
 const SALT_ROUNDS = 10;
 
-module.exports.getUsers = async (req, res) => {
+module.exports.getUsers = async (req, res, next) => {
   try {
     const users = await User.find({});
     res.status(200).send({ data: users });
   } catch (err) {
-    res.status(500).send({ message: 'server error', err });
+    next(err);
   }
 };
 
-module.exports.getUserById = async (req, res) => {
+module.exports.getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.userId);
     if (!user) {
-      res.status(404).send({ message: 'Пользователь не найден' });
+      next(new NotFound('Пользователь не найден'));
       return;
     }
     res.status(200).send({ data: user });
   } catch (err) {
     if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Некорректный id пользователя' });
+      next(new BadRequest('Некорректный id пользователя'));
       return;
     }
-    res.status(500).send({ message: 'server error', err });
+    next();
   }
 };
 
-module.exports.createUser = async (req, res) => {
+module.exports.createUser = async (req, res, next) => {
   try {
     const {
       email, password, name, about, avatar,
     } = req.body;
+    const user = await User.findOne({ email });
+    if (user) {
+      next(new Conflict('Пользователь уже существует'));
+      return;
+    }
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
     const newUser = await User.create({
       email, password: hash, name, about, avatar,
     });
     res.status(200).send({ data: newUser });
   } catch (err) {
-    if (err.code === 11000) {
-      res.status(409).send({ message: 'Пользователь уже существует' });
-    }
     if (err.name === 'ValidationError') {
-      res.status(400).send({ message: 'Переданы некоректные данные', err });
+      next(new BadRequest('Переданы некоректные данные'));
       return;
     }
-    res.status(500).send({ message: 'server error', err });
+    next();
   }
 };
 
-module.exports.updateUserProfile = async (req, res) => {
+module.exports.updateUserProfile = async (req, res, next) => {
   try {
     const { name, about } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
@@ -63,18 +69,18 @@ module.exports.updateUserProfile = async (req, res) => {
     res.status(200).send({ data: updatedUser });
   } catch (err) {
     if (err.name === 'ValidationError') {
-      res.status(400).send({ message: `${Object.values(err.errors).map((error) => error.message).join(', ')}` });
+      next(new BadRequest(`${Object.values(err.errors).map((error) => error.message).join(', ')}`));
       return;
     }
     if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Пользователь не найден' });
+      next(new BadRequest('Пользователь не найден'));
       return;
     }
-    res.status(500).send({ message: 'server error', err });
+    next();
   }
 };
 
-module.exports.updateUserAvatar = async (req, res) => {
+module.exports.updateUserAvatar = async (req, res, next) => {
   try {
     const { avatar } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
@@ -85,31 +91,32 @@ module.exports.updateUserAvatar = async (req, res) => {
     res.status(200).send({ data: updatedUser });
   } catch (err) {
     if (err.name === 'ValidationError') {
-      res.status(400).send({ message: 'Переданы некорректные данные' });
-    }
-    if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Пользователь не найден' });
+      next(new BadRequest('Переданы некорректные данные'));
       return;
     }
-    res.status(500).send({ message: 'server error', err });
+    if (err.name === 'CastError') {
+      next(new BadRequest('Пользователь не найден'));
+      return;
+    }
+    next();
   }
 };
 
-module.exports.login = async (req, res) => {
+module.exports.login = async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).send({ message: 'Неправильные логин или пароль ' });
+    next(new BadRequest('Неправильные логин или пароль'));
     return;
   }
   try {
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      res.status(401).send({ message: 'Неправильные логин или пароль' });
+      next(new Unauthorized('Неправильные логин или пароль'));
       return;
     }
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      res.status(401).send({ message: 'Неправильные логин или пароль' });
+      next(new Unauthorized('Неправильные логин или пароль'));
       return;
     }
 
@@ -124,18 +131,19 @@ module.exports.login = async (req, res) => {
   } catch (err) {
     if (err.name === 'ValidationError') {
       res.status(400).send({ message: err });
+      next(new BadRequest('Неправильные логин или пароль'));
       return;
     }
-    res.status(500).send({ err });
+    next();
   }
 };
 
-module.exports.getMyProfile = async (req, res) => {
+module.exports.getMyProfile = async (req, res, next) => {
   try {
     const { id } = req.user;
     const user = await User.findById(id);
     res.status(200).send({ data: user });
   } catch (err) {
-    res.status(500).send({ err });
+    next();
   }
 };

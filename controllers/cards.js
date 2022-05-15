@@ -1,20 +1,22 @@
+const BadRequest = require('../errors/BadRequest');
+const Forbidden = require('../errors/Forbidden');
+const NotFound = require('../errors/NotFound');
 const Card = require('../models/card');
 
-module.exports.getCards = async (req, res) => {
+module.exports.getCards = async (req, res, next) => {
   try {
     const cards = await Card.find({}).populate('owner').populate({ path: 'likes', populate: 'owner' });
     res.status(200).send({ data: cards });
   } catch (err) {
-    res.status(500).send({ message: 'Произошла ошибка', err });
+    next();
   }
 };
 
-module.exports.createCard = async (req, res) => {
+module.exports.createCard = async (req, res, next) => {
   try {
     const { name, link } = req.body;
-    const owner = req.user._id;
+    const owner = req.user.id;
     const newCard = await Card.create({ name, link, owner });
-
     res
       .status(201)
       .send(
@@ -25,40 +27,40 @@ module.exports.createCard = async (req, res) => {
       );
   } catch (err) {
     if (err.name === 'ValidationError') {
-      res.status(400).send({ message: 'Ошибка валидации' });
+      next(new BadRequest('Ошибка валидации'));
       return;
     }
-    res.status(500).send({ message: 'Ошибка в работе сервера', err });
+    next();
   }
 };
 
-module.exports.deleteCard = async (req, res) => {
+module.exports.deleteCard = async (req, res, next) => {
   const cardToDelete = await Card.findById(req.params.cardId);
   const ownerId = req.user.id;
   try {
     if (ownerId !== cardToDelete.owner._id) {
-      res.status(403).send({ message: 'Чужие карточки удалять нельзя' });
+      next(new Forbidden('Чужие карточки удалять нельзя'));
       return;
     }
     if (!cardToDelete) {
-      res.status(404).send({ message: 'Карточка не найдена' });
+      next(new NotFound('Карточка не найдена'));
       return;
     }
     await Card.findByIdAndRemove(req.params.cardId);
     res.status(200).send({ message: 'Карточка успешно удалена' });
   } catch (err) {
     if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Некорректный id карточки' });
+      next(new BadRequest('Некорректный id карточки'));
       return;
     }
-    res.status(500).send({ message: err.message, err });
+    next();
   }
 };
 
-module.exports.likeCard = async (req, res) => {
+module.exports.likeCard = async (req, res, next) => {
   try {
     if (req.params.cardId.length !== 24) {
-      res.status(400).send({ message: 'Некорректный id карточки' });
+      next(new BadRequest('Некорректный id карточки'));
       return;
     }
     const card = await Card.findByIdAndUpdate(
@@ -67,23 +69,23 @@ module.exports.likeCard = async (req, res) => {
       { new: true },
     );
     if (!card) {
-      res.status(404).send({ message: 'Карточка не найдена' });
+      next(new NotFound('Карточка не найдена'));
       return;
     }
     res.status(200).send({ message: 'Лайк поставлен' });
   } catch (err) {
     if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Передан несуществующий id', err });
+      next(new BadRequest('Передан несуществующий id'));
       return;
     }
-    res.status(500).send({ message: 'server error', err });
+    next();
   }
 };
 
-module.exports.dislikeCard = async (req, res) => {
+module.exports.dislikeCard = async (req, res, next) => {
   try {
     if (req.params.cardId.length !== 24) {
-      res.status(400).send({ message: 'Некорректный id карточки' });
+      next(new BadRequest('Некорректный id карточки'));
       return;
     }
     const card = await Card.findByIdAndUpdate(
@@ -92,15 +94,15 @@ module.exports.dislikeCard = async (req, res) => {
       { new: true },
     );
     if (!card) {
-      res.status(404).send({ message: 'Карточка не найдена' });
+      next(new NotFound('Карточка не найдена'));
       return;
     }
     res.status(200).send({ message: 'Лайк снят' });
   } catch (err) {
     if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Передан несуществующий id', err });
+      next(new BadRequest('Передан несуществующий id'));
       return;
     }
-    res.status(500).send({ message: 'server error', err });
+    next();
   }
 };
