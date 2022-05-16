@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { celebrate, Joi, errors } = require('celebrate');
 const { login, createUser } = require('./controllers/users');
 const { isAuthorized } = require('./middlewares/auth');
+const { emailRegExp } = require('./utils/utils');
 
 const { PORT = 3000 } = process.env;
 
@@ -12,14 +13,14 @@ app.use(express.json());
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
-    email: Joi.string().required(),
+    email: Joi.string().required().pattern(emailRegExp),
     password: Joi.string().required(),
   }),
 }), login);
 app.post('/signup', celebrate({
   body: Joi.object().keys({
-    email: Joi.string(),
-    password: Joi.string(),
+    email: Joi.string().required().pattern(emailRegExp),
+    password: Joi.string().required(),
     name: Joi.string(),
     about: Joi.string(),
     avatar: Joi.string(),

@@ -49,9 +49,11 @@ module.exports.createUser = async (req, res, next) => {
       return;
     }
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
-    const newUser = await User.create({
+    let newUser = await User.create({
       email, password: hash, name, about, avatar,
     });
+    newUser = newUser.toObject();
+    delete newUser.password;
     res.status(200).send({ data: newUser });
   } catch (err) {
     if (err.name === 'ValidationError') {
@@ -66,7 +68,7 @@ module.exports.updateUserProfile = async (req, res, next) => {
   try {
     const { name, about } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
+      req.user.id,
       { name, about },
       { new: true, runValidators: true },
     );
@@ -88,7 +90,7 @@ module.exports.updateUserAvatar = async (req, res, next) => {
   try {
     const { avatar } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
+      req.user.id,
       { avatar },
       { new: true, runValidators: true },
     );

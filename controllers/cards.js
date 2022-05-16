@@ -38,7 +38,7 @@ module.exports.deleteCard = async (req, res, next) => {
   const cardToDelete = await Card.findById(req.params.cardId);
   const ownerId = req.user.id;
   try {
-    if (ownerId !== cardToDelete.owner._id) {
+    if (ownerId !== cardToDelete.owner._id.toString()) {
       next(new Forbidden('Чужие карточки удалять нельзя'));
       return;
     }
