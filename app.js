@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const { celebrate, Joi, errors } = require('celebrate');
 const { login, createUser } = require('./controllers/users');
 const { isAuthorized } = require('./middlewares/auth');
-const { emailRegExp } = require('./utils/utils');
+const { emailRegExp, urlRegExp } = require('./utils/utils');
 
 const { PORT = 3000 } = process.env;
 
@@ -21,9 +21,9 @@ app.post('/signup', celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().pattern(emailRegExp),
     password: Joi.string().required(),
-    name: Joi.string(),
-    about: Joi.string(),
-    avatar: Joi.string(),
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string().pattern(urlRegExp),
   }),
 }), createUser);
 
