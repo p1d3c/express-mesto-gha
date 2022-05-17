@@ -136,7 +136,6 @@ module.exports.login = async (req, res, next) => {
     //   .end();
   } catch (err) {
     if (err.name === 'ValidationError') {
-      res.status(400).send({ message: err });
       next(new BadRequest('Неправильные логин или пароль'));
       return;
     }
