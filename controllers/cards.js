@@ -5,7 +5,7 @@ const Card = require('../models/card');
 
 module.exports.getCards = async (req, res, next) => {
   try {
-    const cards = await Card.find({}).populate('owner').populate({ path: 'likes', populate: 'owner' });
+    const cards = await Card.find({}).populate({ path: 'likes', select: 'owner' });
     res.status(200).send({ data: cards });
   } catch (err) {
     next();
@@ -19,12 +19,7 @@ module.exports.createCard = async (req, res, next) => {
     const newCard = await Card.create({ name, link, owner });
     res
       .status(201)
-      .send(
-        await Card
-          .findById(newCard._id)
-          .populate('owner')
-          .populate({ path: 'likes', populate: 'owner' }),
-      );
+      .send(newCard);
   } catch (err) {
     if (err.name === 'ValidationError') {
       next(new BadRequest('Ошибка валидации'));
@@ -59,13 +54,9 @@ module.exports.deleteCard = async (req, res, next) => {
 
 module.exports.likeCard = async (req, res, next) => {
   try {
-    if (req.params.cardId.length !== 24) {
-      next(new BadRequest('Некорректный id карточки'));
-      return;
-    }
     const card = await Card.findByIdAndUpdate(
       req.params.cardId,
-      { $addToSet: { likes: req.user._id } },
+      { $addToSet: { likes: req.user.id } },
       { new: true },
     );
     if (!card) {
@@ -84,13 +75,9 @@ module.exports.likeCard = async (req, res, next) => {
 
 module.exports.dislikeCard = async (req, res, next) => {
   try {
-    if (req.params.cardId.length !== 24) {
-      next(new BadRequest('Некорректный id карточки'));
-      return;
-    }
     const card = await Card.findByIdAndUpdate(
       req.params.cardId,
-      { $pull: { likes: req.user._id } },
+      { $pull: { likes: req.user.id } },
       { new: true },
     );
     if (!card) {
