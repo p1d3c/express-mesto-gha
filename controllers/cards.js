@@ -5,7 +5,7 @@ const Card = require('../models/card');
 
 module.exports.getCards = async (req, res, next) => {
   try {
-    const cards = await Card.find({}).populate({ path: 'likes', select: 'owner' });
+    const cards = await Card.find({});
     res.status(200).send({ data: cards });
   } catch (err) {
     next();
