@@ -4,12 +4,15 @@ const { celebrate, Joi, errors } = require('celebrate');
 const { login, createUser } = require('./controllers/users');
 const { isAuthorized } = require('./middlewares/auth');
 const { emailRegExp, urlRegExp } = require('./utils/utils');
+const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const { PORT = 3000 } = process.env;
 
 const app = express();
 
 app.use(express.json());
+
+app.use(requestLogger);
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
@@ -35,6 +38,8 @@ app.use('/', require('./routes/cards'));
 app.use('*', (req, res) => {
   res.status(404).send({ message: 'Путь не найден' });
 });
+
+app.use(errorLogger);
 
 app.use(errors());
 
