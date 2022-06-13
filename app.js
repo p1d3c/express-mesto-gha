@@ -8,11 +8,36 @@ const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const { PORT = 3000 } = process.env;
 
+const allowedCors = [
+  'localhost:3000',
+];
+
 const app = express();
 
 app.use(express.json());
 
 app.use(requestLogger);
+
+app.use((req, res, next) => {
+  const { origin } = req.headers;
+  if (allowedCors.includes(origin)) {
+    res.header('Access-Contorl-Allow-Origin', origin);
+  }
+  next();
+});
+
+app.use((req, res) => {
+  const { method } = req;
+  const DEFAULT_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
+  const requestHeaders = req.headers['access-control-request-headers'];
+
+  if (method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', DEFAULT_ALLOWED_METHODS);
+    res.header('Access-Control-Allow-Headers', requestHeaders);
+
+    res.end();
+  }
+});
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
